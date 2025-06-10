@@ -222,13 +222,14 @@ void JointPositionController::Configure(const Entity &_entity,
     }
   }
 
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false);
+
   // Subscribe to commands
   std::string topic;
   if ((!_sdf->HasElement("sub_topic")) && (!_sdf->HasElement("topic"))
     && (!this->dataPtr->useActuatorMsg))
   {
-    topic = transport::TopicUtils::AsValidTopic("/model/" +
-        this->dataPtr->model.Name(_ecm) + "/joint/" +
+    topic = transport::TopicUtils::AsValidTopic(topicPrefix + "/joint/" +
         this->dataPtr->jointNames[0] + "/" +
         std::to_string(this->dataPtr->jointIndex) + "/cmd_pos");
     if (topic.empty())
@@ -253,8 +254,7 @@ void JointPositionController::Configure(const Entity &_entity,
   }
   if (_sdf->HasElement("sub_topic"))
   {
-    topic = transport::TopicUtils::AsValidTopic("/model/" +
-      this->dataPtr->model.Name(_ecm) + "/" +
+    topic = transport::TopicUtils::AsValidTopic(topicPrefix + "/" +
         _sdf->Get<std::string>("sub_topic"));
 
     if (topic.empty())

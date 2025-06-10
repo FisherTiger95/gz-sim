@@ -249,7 +249,7 @@ void TrackController::Configure(const Entity &_entity,
     }
   );
 
-  const auto topicPrefix = "/model/" + this->dataPtr->model.Name(_ecm) +
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false) + 
     "/link/" + this->dataPtr->linkName;
 
   const auto kDefaultVelTopic = topicPrefix + "/track_cmd_vel";

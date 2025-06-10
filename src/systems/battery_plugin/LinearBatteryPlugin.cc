@@ -48,6 +48,7 @@
 #include "gz/sim/components/ParentEntity.hh"
 #include "gz/sim/components/World.hh"
 #include "gz/sim/Model.hh"
+#include "gz/sim/Util.hh"
 
 using namespace gz;
 using namespace sim;
@@ -305,6 +306,9 @@ void LinearBatteryPlugin::Configure(const Entity &_entity,
     return;
   }
 
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false);
+  const auto batteryName = _sdf->Get<std::string>("battery_name");
+
   if (_sdf->HasElement("enable_recharge"))
   {
     auto isCharging = _sdf->Get<bool>("enable_recharge");
@@ -319,12 +323,8 @@ void LinearBatteryPlugin::Configure(const Entity &_entity,
         return;
       }
 
-      std::string enableRechargeTopic = "/model/" + this->dataPtr->modelName +
-        "/battery/" + _sdf->Get<std::string>("battery_name") +
-        "/recharge/start";
-      std::string disableRechargeTopic = "/model/" + this->dataPtr->modelName +
-        "/battery/" + _sdf->Get<std::string>("battery_name") +
-        "/recharge/stop";
+      std::string enableRechargeTopic = topicPrefix + "/" + batteryName + "/recharge/start";
+      std::string disableRechargeTopic = topicPrefix + "/" + batteryName + "/recharge/stop";
 
       auto validEnableRechargeTopic = transport::TopicUtils::AsValidTopic(
           enableRechargeTopic);
@@ -418,9 +418,7 @@ void LinearBatteryPlugin::Configure(const Entity &_entity,
       components::BatterySoC(this->dataPtr->soc));
 
   // Setup battery state topic
-  std::string stateTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/battery/" + this->dataPtr->battery->Name() + "/state"};
-
+  std::string stateTopic = topicPrefix + "/" + batteryName + "/state";
   auto validStateTopic = transport::TopicUtils::AsValidTopic(stateTopic);
   if (validStateTopic.empty())
   {

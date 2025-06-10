@@ -255,18 +255,17 @@ void TrackedVehicle::Configure(const Entity &_entity,
     tracks[linkName] = sdfElem;
     sdfElem = sdfElem->GetNextElement("right_track");
   }
-
+  
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false);
   for (const auto &[linkName, elem] : tracks)
   {
-    const auto prefix = "/model/" + modelName + "/link/" + linkName;
-
     auto topic = validTopic({elem->Get<std::string>(
-      "velocity_topic", prefix + "/track_cmd_vel").first});
+      "velocity_topic", topicPrefix + "/link/" + linkName + "/track_cmd_vel").first});
     this->dataPtr->velPublishers[linkName] =
       this->dataPtr->node.Advertise<msgs::Double>(topic);
 
     topic = validTopic({elem->Get<std::string>("center_of_rotation_topic",
-      prefix + "/track_cmd_center_of_rotation").first});
+      topicPrefix + "/link/" + linkName + "/track_cmd_center_of_rotation").first});
     this->dataPtr->corPublishers[linkName] =
       this->dataPtr->node.Advertise<msgs::Vector3d>(topic);
   }
@@ -366,8 +365,6 @@ void TrackedVehicle::Configure(const Entity &_entity,
       this->dataPtr->trackHeight/2, this->dataPtr->trackHeight/2);
 
   // Subscribe to commands
-  const auto topicPrefix = "/model/" + this->dataPtr->model.Name(_ecm);
-
   const auto kDefaultCmdVelTopic {topicPrefix + "/cmd_vel"};
   const auto topic = validTopic({
     _sdf->Get<std::string>("topic", kDefaultCmdVelTopic).first,
@@ -603,12 +600,9 @@ void TrackedVehiclePrivate::UpdateOdometry(
 
   if (this->sdfChildFrameId.empty())
   {
-    if (!this->bodyLinkName.empty())
-    {
       auto childFrame = msg.mutable_header()->add_data();
       childFrame->set_key("child_frame_id");
-      childFrame->add_value(this->model.Name(_ecm) + "/" + this->bodyLinkName);
-    }
+      childFrame->add_value(scopedName(_ecm.ParentEntity(this->model.Entity()), _ecm, "::", false) + "::" + this->model.Name(_ecm));
   }
   else
   {

@@ -183,8 +183,7 @@ void OdometryPublisher::Configure(const Entity &_entity,
     this->dataPtr->gaussianNoise = _sdf->Get<double>("gaussian_noise");
   }
 
-  this->dataPtr->robotBaseFrame = this->dataPtr->model.Name(_ecm)
-    + "/" + "base_footprint";
+  this->dataPtr->robotBaseFrame = scopedName(_ecm.ParentEntity(this->dataPtr->model.Entity()), _ecm, "::", false) + "::" + this->dataPtr->model.Name(_ecm);
   if (!_sdf->HasElement("robot_base_frame"))
   {
     gzdbg << "OdometryPublisher system plugin missing <robot_base_frame>, "
@@ -222,10 +221,9 @@ void OdometryPublisher::Configure(const Entity &_entity,
   }
 
   // Setup odometry
-  std::string odomTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/odometry"};
-  std::string odomCovTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/odometry_with_covariance"};
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false);
+  std::string odomTopic{topicPrefix + "/odometry"};
+  std::string odomCovTopic{topicPrefix + "/odometry_cov"};
 
   if (_sdf->HasElement("odom_topic"))
     odomTopic = _sdf->Get<std::string>("odom_topic");
@@ -263,7 +261,7 @@ void OdometryPublisher::Configure(const Entity &_entity,
            << odomCovTopicValid << "]" << std::endl;
   }
 
-  std::string tfTopic{"/model/" + this->dataPtr->model.Name(_ecm) + "/pose"};
+  std::string tfTopic{topicPrefix + "/pose"};
   if (_sdf->HasElement("tf_topic"))
     tfTopic = _sdf->Get<std::string>("tf_topic");
   std::string tfTopicValid {transport::TopicUtils::AsValidTopic(tfTopic)};

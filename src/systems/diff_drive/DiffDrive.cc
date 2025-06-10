@@ -332,13 +332,15 @@ void DiffDrive::Configure(const Entity &_entity,
   this->dataPtr->odom.SetWheelParams(this->dataPtr->wheelSeparation,
       this->dataPtr->wheelRadius, this->dataPtr->wheelRadius);
 
+  const auto topicPrefix = topicFromScopedName(_entity, _ecm, false);
+
   // Subscribe to commands
   std::vector<std::string> topics;
   if (_sdf->HasElement("topic"))
   {
     topics.push_back(_sdf->Get<std::string>("topic"));
   }
-  topics.push_back("/model/" + this->dataPtr->model.Name(_ecm) + "/cmd_vel");
+  topics.push_back(topicPrefix + "/cmd_vel");
   auto topic = validTopic(topics);
 
   this->dataPtr->node.Subscribe(topic, &DiffDrivePrivate::OnCmdVel,
@@ -346,8 +348,7 @@ void DiffDrive::Configure(const Entity &_entity,
 
   // Subscribe to enable/disable
   std::vector<std::string> enableTopics;
-  enableTopics.push_back(
-    "/model/" + this->dataPtr->model.Name(_ecm) + "/enable");
+  enableTopics.push_back(topicPrefix + "/enable");
   auto enableTopic = validTopic(enableTopics);
 
   if (!enableTopic.empty())
@@ -362,15 +363,13 @@ void DiffDrive::Configure(const Entity &_entity,
   {
     odomTopics.push_back(_sdf->Get<std::string>("odom_topic"));
   }
-  odomTopics.push_back("/model/" + this->dataPtr->model.Name(_ecm) +
-      "/odometry");
+  odomTopics.push_back(topicPrefix + "/odom");
   auto odomTopic = validTopic(odomTopics);
 
   this->dataPtr->odomPub = this->dataPtr->node.Advertise<msgs::Odometry>(
       odomTopic);
 
-  std::string tfTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/tf"};
+  std::string tfTopic{topicPrefix + "/tf"};
   if (_sdf->HasElement("tf_topic"))
     tfTopic = _sdf->Get<std::string>("tf_topic");
   this->dataPtr->tfPub = this->dataPtr->node.Advertise<msgs::Pose_V>(
@@ -572,15 +571,11 @@ void DiffDrivePrivate::UpdateOdometry(const UpdateInfo &_info,
     frame->add_value(this->sdfFrameId);
   }
 
-  std::optional<std::string> linkName = this->canonicalLink.Name(_ecm);
   if (this->sdfChildFrameId.empty())
   {
-    if (linkName)
-    {
       auto childFrame = msg.mutable_header()->add_data();
       childFrame->set_key("child_frame_id");
-      childFrame->add_value(this->model.Name(_ecm) + "/" + *linkName);
-    }
+      childFrame->add_value(scopedName(_ecm.ParentEntity(this->model.Entity()), _ecm, "::", false) + "::" + this->model.Name(_ecm));
   }
   else
   {
